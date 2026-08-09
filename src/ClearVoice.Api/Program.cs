@@ -11,8 +11,20 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 // Configure Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? 
@@ -85,11 +97,57 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
+
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/health/ready");
+
+// Auto-Migrate and Seed Database
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ClearVoiceDbContext>();
+        context.Database.Migrate();
+
+        var passwordHasher = services.GetRequiredService<IPasswordHasher>();
+
+        if (!context.Tenants.Any())
+        {
+            var tenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            context.Tenants.Add(new ClearVoice.Domain.Entities.Tenant
+            {
+                Id = tenantId,
+                LegalName = "Acme Corp (Demo)",
+                TaxId = "123456789",
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+
+            context.Users.Add(new ClearVoice.Domain.Entities.User
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                TenantId = tenantId,
+                Email = "admin@company.com",
+                PasswordHash = passwordHasher.HashPassword("password123"),
+                Role = "TenantAdmin",
+                Status = "active",
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+
+            context.SaveChanges();
+            Console.WriteLine("Demo Tenant and User seeded.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"An error occurred while migrating or seeding the database: {ex.Message}");
+    }
+}
 
 
 app.UseHttpsRedirection();
