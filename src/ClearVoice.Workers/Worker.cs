@@ -47,7 +47,7 @@ public class Worker : BackgroundService
 
         // Fetch up to 20 unprocessed messages
         var messages = await context.OutboxMessages
-            .Where(m => m.ProcessedAt == null)
+            .Where(m => m.Status == "pending" && m.NextAttemptAt <= DateTimeOffset.UtcNow)
             .OrderBy(m => m.CreatedAt)
             .Take(20)
             .ToListAsync(stoppingToken);
@@ -63,18 +63,20 @@ public class Worker : BackgroundService
                 var payload = JsonSerializer.Deserialize<JsonElement>(message.Payload);
                 var invoiceId = Guid.Parse(payload.GetProperty("InvoiceId").GetString()!);
 
-                var invoice = await context.Invoices.Include(i => i.Lines).FirstOrDefaultAsync(i => i.Id == invoiceId, stoppingToken);
+                var invoice = await context.Invoices.Include(i => i.InvoiceLines).FirstOrDefaultAsync(i => i.Id == invoiceId, stoppingToken);
                 
-                if (invoice != null && invoice.Status == InvoiceStatus.Pending)
+                if (invoice != null && invoice.Status == "PENDING")
                 {
-                    // Call the JoSEC API mock
-                    var result = await clearanceClient.SubmitAsync(invoice.UblPayload);
+                    // Serialize the invoice as a dummy UBL payload for the mock client
+                    var ublPayloadDummy = JsonSerializer.Serialize(invoice);
+                    var result = await clearanceClient.SubmitAsync(ublPayloadDummy);
 
                     if (result.Success)
                     {
-                        invoice.Status = InvoiceStatus.Cleared;
-                        invoice.JoSecClearanceId = result.ResponseCode; // e.g., "CLR-123"
-                        invoice.JoSecQrCodePayload = result.QrPayload;
+                        invoice.Status = "CLEARED";
+                        invoice.UblDocumentRef = result.ResponseCode; // e.g., "CLR-123"
+                        invoice.QrPayload = result.QrPayload;
+                        invoice.ClearedAt = DateTimeOffset.UtcNow;
                         
                         _logger.LogInformation("Invoice {InvoiceId} successfully cleared by JoSEC.", invoice.Id);
 
@@ -83,7 +85,7 @@ public class Worker : BackgroundService
                     }
                     else
                     {
-                        invoice.Status = InvoiceStatus.Rejected;
+                        invoice.Status = "REJECTED";
                         // Log or handle rejection in a real system
                         _logger.LogWarning("Invoice {InvoiceId} rejected by JoSEC. Reason: {Reason}", invoice.Id, result.ErrorDetail);
                     }
@@ -91,7 +93,7 @@ public class Worker : BackgroundService
             }
 
             // Mark message as processed
-            message.ProcessedAt = DateTimeOffset.UtcNow;
+            message.Status = "processed";
             await context.SaveChangesAsync(stoppingToken);
         }
     }
