@@ -30,6 +30,12 @@ To keep controllers exceptionally thin and testable, all business logic is encap
 ### 4. Transactional Outbox Pattern (Preparation)
 Submitting an invoice to a government API can fail due to network issues. In the `SubmitInvoiceCommandHandler`, we save the `Invoice` to our database and simultaneously save an `OutboxMessage` in the *same database transaction*. A background worker (to be implemented) will reliably process this outbox table and retry submitting to the external API, guaranteeing eventual consistency without two-phase commit (2PC) complications.
 
+### 5. Frontend Architecture (React + Vite)
+The presentation layer is built with **React**, **TypeScript**, and **Vite** for incredibly fast HMR. We prioritized a premium, institutional aesthetic:
+- **Tailwind CSS**: Custom configured with a professional `primary` green palette and subtle `surface` colors.
+- **Framer Motion**: Utilized for micro-interactions (e.g., page transitions, active navigation states) that make the application feel responsive and modern.
+- **Component Design**: UI components (like `StatCard`, `InvoiceRow`) are modularized. Global CSS classes (`btn-primary`, `input-field`, `card`) are defined in `index.css` using `@layer components` to prevent utility-class clutter in the JSX while maintaining Tailwind's benefits.
+
 ## Getting Started
 
 ### Prerequisites
