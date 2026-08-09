@@ -1,6 +1,5 @@
-import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Settings, LogOut, FileCheck2 } from 'lucide-react';
+import { FileCheck2, LayoutDashboard, FileText, Settings, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion } from 'framer-motion';
 

@@ -48,7 +48,7 @@ namespace ClearVoice.Infrastructure.Services
             var payloadJson = JsonSerializer.Serialize(payload);
             var client = _httpClientFactory.CreateClient();
 
-            foreach (var webhook in webhooks)
+            var dispatchTasks = webhooks.Select(async webhook =>
             {
                 try
                 {
@@ -57,14 +57,12 @@ namespace ClearVoice.Infrastructure.Services
                         Content = new StringContent(payloadJson, Encoding.UTF8, "application/json")
                     };
 
-                    // Create HMAC signature
                     using (var hmac = new HMACSHA256(Convert.FromBase64String(webhook.SigningSecret)))
                     {
                         var signature = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(payloadJson)));
                         request.Headers.Add("X-ClearVoice-Signature", signature);
                     }
 
-                    // In a real app, you'd save a WebhookDelivery record, handle retries and timeouts
                     var response = await client.SendAsync(request);
                     if (!response.IsSuccessStatusCode)
                     {
@@ -75,7 +73,9 @@ namespace ClearVoice.Infrastructure.Services
                 {
                     _logger.LogError(ex, "Error dispatching webhook to {Url}", webhook.Url);
                 }
-            }
+            });
+
+            await Task.WhenAll(dispatchTasks);
         }
     }
 }

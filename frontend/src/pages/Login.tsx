@@ -1,20 +1,36 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { FileCheck2, ArrowRight } from 'lucide-react';
+import { FileCheck2, ArrowRight, AlertCircle } from 'lucide-react';
+import { api } from '../lib/api';
 
 export const Login = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('admin@company.com');
+  const [password, setPassword] = useState('password123');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate login
-    setTimeout(() => {
-      setLoading(false);
+    setError(null);
+    
+    try {
+      const response = await api.post('/api/v1/auth/login', {
+        email,
+        password
+      });
+      
+      const { accessToken } = response.data;
+      localStorage.setItem('accessToken', accessToken);
+      
       navigate('/dashboard');
-    }, 1000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to sign in. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -35,15 +51,23 @@ export const Login = () => {
           <h2 className="text-2xl font-semibold text-slate-800 mb-2">Welcome back</h2>
           <p className="text-slate-500 mb-8">Sign in to your ClearVoice portal to manage e-invoicing compliance.</p>
 
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2 text-red-600 text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address</label>
               <input 
                 type="email" 
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="input-field" 
                 placeholder="admin@company.com"
-                defaultValue="admin@company.com"
               />
             </div>
             
@@ -52,9 +76,10 @@ export const Login = () => {
               <input 
                 type="password" 
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="input-field" 
                 placeholder="••••••••"
-                defaultValue="password123"
               />
             </div>
 

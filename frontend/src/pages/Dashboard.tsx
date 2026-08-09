@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Plus, ArrowUpRight, ArrowDownRight, Clock, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -42,7 +41,7 @@ const InvoiceRow = ({ id, client, amount, status, date }: any) => (
   </tr>
 );
 
-import { cn } from '../../lib/utils';
+import { cn } from '../lib/utils';
 
 export const Dashboard = () => {
   const navigate = useNavigate();

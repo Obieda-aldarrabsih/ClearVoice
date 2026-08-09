@@ -1,19 +1,61 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Send } from 'lucide-react';
+import { ArrowLeft, Save, Send, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { api } from '../lib/api';
 
 export const NewInvoice = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [buyerName, setBuyerName] = useState('');
+  const [buyerTaxId, setBuyerTaxId] = useState('');
+  const [externalRef, setExternalRef] = useState('');
+  
+  const [lines, setLines] = useState([
+    { description: '', quantity: 1, unitPrice: 0, taxRate: 16 }
+  ]);
+
+  const handleAddLine = () => {
+    setLines([...lines, { description: '', quantity: 1, unitPrice: 0, taxRate: 16 }]);
+  };
+
+  const handleRemoveLine = (index: number) => {
+    setLines(lines.filter((_, i) => i !== index));
+  };
+
+  const handleLineChange = (index: number, field: string, value: string | number) => {
+    const newLines = [...lines];
+    newLines[index] = { ...newLines[index], [field]: value };
+    setLines(newLines);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setError(null);
+    
+    try {
+      await api.post('/api/v1/invoices', {
+        buyerName,
+        buyerTaxId,
+        externalRef,
+        currency: 'JOD',
+        lines: lines.map(l => ({
+          description: l.description,
+          quantity: Number(l.quantity),
+          unitPrice: Number(l.unitPrice),
+          taxRate: Number(l.taxRate)
+        }))
+      });
+      
       navigate('/dashboard');
-    }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.response?.data?.error || 'Failed to submit invoice.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,26 +74,57 @@ export const NewInvoice = () => {
           <button className="btn-secondary gap-2">
             <Save className="w-4 h-4" /> Save Draft
           </button>
-          <button onClick={handleSubmit} disabled={loading} className="btn-primary gap-2">
+          <button onClick={handleSubmit} disabled={loading || lines.length === 0} className="btn-primary gap-2">
             {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
             Submit Invoice
           </button>
         </div>
       </div>
 
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 text-red-700">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <p>{error}</p>
+        </div>
+      )}
+
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card">
-        <form className="p-8 space-y-8">
+        <form className="p-8 space-y-8" onSubmit={handleSubmit}>
           
           <div>
             <h3 className="text-lg font-medium text-slate-900 mb-4 border-b border-slate-100 pb-2">Client Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Client Name</label>
-                <input type="text" className="input-field" placeholder="E.g. Acme Corp" />
+                <input 
+                  type="text" 
+                  required
+                  value={buyerName}
+                  onChange={e => setBuyerName(e.target.value)}
+                  className="input-field" 
+                  placeholder="E.g. Acme Corp" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Tax Identification Number (TIN)</label>
-                <input type="text" className="input-field" placeholder="123456789" />
+                <input 
+                  type="text" 
+                  required
+                  value={buyerTaxId}
+                  onChange={e => setBuyerTaxId(e.target.value)}
+                  className="input-field" 
+                  placeholder="123456789" 
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">External Reference / PO Number (Optional)</label>
+                <input 
+                  type="text" 
+                  value={externalRef}
+                  onChange={e => setExternalRef(e.target.value)}
+                  className="input-field" 
+                  placeholder="PO-2026-001" 
+                />
               </div>
             </div>
           </div>
@@ -62,35 +135,79 @@ export const NewInvoice = () => {
             </div>
             
             <div className="space-y-4">
-              <div className="grid grid-cols-12 gap-4 items-center bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <div className="col-span-5">
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                  <input type="text" className="input-field py-1.5 text-sm" placeholder="Consulting Services" />
+              {lines.map((line, index) => (
+                <div key={index} className="grid grid-cols-12 gap-4 items-center bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <div className="col-span-5">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Description</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={line.description}
+                      onChange={e => handleLineChange(index, 'description', e.target.value)}
+                      className="input-field py-1.5 text-sm" 
+                      placeholder="Consulting Services" 
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Quantity</label>
+                    <input 
+                      type="number" 
+                      required
+                      min="1"
+                      step="any"
+                      value={line.quantity}
+                      onChange={e => handleLineChange(index, 'quantity', e.target.value)}
+                      className="input-field py-1.5 text-sm" 
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Unit Price</label>
+                    <input 
+                      type="number" 
+                      required
+                      min="0"
+                      step="0.01"
+                      value={line.unitPrice}
+                      onChange={e => handleLineChange(index, 'unitPrice', e.target.value)}
+                      className="input-field py-1.5 text-sm" 
+                      placeholder="0.00" 
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Tax Rate (%)</label>
+                    <input 
+                      type="number" 
+                      required
+                      min="0"
+                      max="100"
+                      value={line.taxRate}
+                      onChange={e => handleLineChange(index, 'taxRate', e.target.value)}
+                      className="input-field py-1.5 text-sm" 
+                    />
+                  </div>
+                  <div className="col-span-1 flex justify-end">
+                    <button 
+                      type="button" 
+                      onClick={() => handleRemoveLine(index)}
+                      className="text-slate-400 hover:text-red-500 mt-5"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Quantity</label>
-                  <input type="number" className="input-field py-1.5 text-sm" placeholder="1" defaultValue="1" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Unit Price</label>
-                  <input type="number" className="input-field py-1.5 text-sm" placeholder="0.00" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Tax Rate (%)</label>
-                  <input type="number" className="input-field py-1.5 text-sm" placeholder="16" defaultValue="16" />
-                </div>
-                <div className="col-span-1 flex justify-end">
-                  <button type="button" className="text-slate-400 hover:text-red-500 mt-5">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                  </button>
-                </div>
-              </div>
-              <button type="button" className="text-sm font-medium text-primary-600 hover:text-primary-700">+ Add another item</button>
+              ))}
+              <button 
+                type="button" 
+                onClick={handleAddLine}
+                className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" /> Add another item
+              </button>
             </div>
           </div>
-
         </form>
       </motion.div>
     </div>
   );
 };
+
