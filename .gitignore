@@ -1,0 +1,39 @@
+# .NET Core
+bin/
+obj/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+[Jj]unit[Rr]esult.xml
+[Tt]est[Rr]esults.xml
+*.swp
+*.[Oo]bj
+*.[Oo]
+*.[Ll]og
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+*.[Cc]ache
+*.orig
+*.[Cc]overage
+*.coverage
+*.coveragexml
+.vs/
+.vscode/
+
+# Node / React
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+.eslintcache
+.stylelintcache
+
+# Mac
+.DS_Store
+
+# Env
+.env
+.env.*.local
