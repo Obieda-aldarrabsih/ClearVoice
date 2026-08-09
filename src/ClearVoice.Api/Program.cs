@@ -29,13 +29,19 @@ builder.Services.AddScoped<ITenantProvider, TenantProvider>();
 builder.Services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IClearVoiceDbContext>(provider => provider.GetRequiredService<ClearVoiceDbContext>());
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ClearVoice.Application.Invoices.Commands.SubmitInvoiceCommand).Assembly));
 builder.Services.AddValidatorsFromAssembly(typeof(ClearVoice.Application.Invoices.Commands.SubmitInvoiceCommandValidator).Assembly);
 
 // Configure Auth
 var jwtSecret = builder.Configuration["JwtSettings:Secret"] ?? "SuperSecretKeyForDevelopmentOnly12345!";
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -48,10 +54,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["JwtSettings:Audience"] ?? "ClearVoiceClient",
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
         };
-    });
+    })
+    .AddScheme<ClearVoice.Api.Auth.ApiKeyAuthenticationOptions, ClearVoice.Api.Auth.ApiKeyAuthenticationHandler>(
+        ClearVoice.Api.Auth.ApiKeyAuthenticationOptions.DefaultScheme, options => { });
 
 builder.Services.AddAuthorization(options =>
 {
+    // A policy for users or APIs that can submit invoices
+    options.AddPolicy("CanSubmitInvoices", policy =>
+    {
+        policy.AuthenticationSchemes.Add(JwtBearerDefaults.AuthenticationScheme);
+        policy.AuthenticationSchemes.Add(ClearVoice.Api.Auth.ApiKeyAuthenticationOptions.DefaultScheme);
+        policy.RequireAuthenticatedUser();
+    });
+
     options.AddPolicy("CanManageTeam", policy => policy.RequireRole("TenantAdmin", "SystemOperator"));
 });
 

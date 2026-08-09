@@ -9,7 +9,7 @@ namespace ClearVoice.Api.Controllers
 {
     [ApiController]
     [Route("api/v1/invoices")]
-    [Authorize]
+    [Authorize(Policy = "CanSubmitInvoices")]
     public class InvoicesController : ControllerBase
     {
         private readonly IMediator _mediator;

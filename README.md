@@ -27,10 +27,13 @@ Instead of older algorithms like PBKDF2 or BCrypt, we chose **Argon2id** (the wi
 ### 3. CQRS with MediatR & FluentValidation
 To keep controllers exceptionally thin and testable, all business logic is encapsulated in MediatR Command/Query handlers in the Application layer. We use FluentValidation to enforce strict request validation (e.g., verifying invoice line items have positive quantities) *before* the handler is invoked.
 
-### 4. Transactional Outbox Pattern (Preparation)
+### 4. API Key Authentication for Machine-to-Machine (ERP) Integration
+While the frontend UI uses standard JWT tokens, ERP systems need long-lived credentials. We implemented a custom `ApiKeyAuthenticationHandler`. When an API Key is generated, the *clear-text key is returned only once*, and a **SHA-256 hash** of the key is stored in the database. This guarantees that even if the database is compromised, the API keys cannot be recovered or misused.
+
+### 5. Transactional Outbox Pattern (Preparation)
 Submitting an invoice to a government API can fail due to network issues. In the `SubmitInvoiceCommandHandler`, we save the `Invoice` to our database and simultaneously save an `OutboxMessage` in the *same database transaction*. A background worker (to be implemented) will reliably process this outbox table and retry submitting to the external API, guaranteeing eventual consistency without two-phase commit (2PC) complications.
 
-### 5. Frontend Architecture (React + Vite)
+### 6. Frontend Architecture (React + Vite)
 The presentation layer is built with **React**, **TypeScript**, and **Vite** for incredibly fast HMR. We prioritized a premium, institutional aesthetic:
 - **Tailwind CSS**: Custom configured with a professional `primary` green palette and subtle `surface` colors.
 - **Framer Motion**: Utilized for micro-interactions (e.g., page transitions, active navigation states) that make the application feel responsive and modern.
