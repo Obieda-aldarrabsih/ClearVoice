@@ -6,7 +6,7 @@ namespace ClearVoice.Infrastructure.Services
 {
     public class MockClearanceClient : IClearanceClient
     {
-        public Task<(bool Success, string? ResponseCode, string? ErrorDetail, string RawResponse, string? QrPayload)> SubmitAsync(string ublXml)
+        public Task<(bool Success, string? ResponseCode, string? ErrorDetail, string RawResponse, string? QrPayload)> SubmitAsync(string ublPayload)
         {
             // Simulate clearance service success for MVP
             return Task.FromResult((

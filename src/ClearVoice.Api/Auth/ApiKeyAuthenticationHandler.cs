@@ -58,9 +58,9 @@ namespace ClearVoice.Api.Auth
                 new Claim(ClaimTypes.Role, "ApiUser") // Specific role for API machine-to-machine integrations
             };
 
-            var identity = new ClaimsIdentity(claims, Options.DefaultScheme);
+            var identity = new ClaimsIdentity(claims, ApiKeyAuthenticationOptions.DefaultScheme);
             var principal = new ClaimsPrincipal(identity);
-            var ticket = new AuthenticationTicket(principal, Options.DefaultScheme);
+            var ticket = new AuthenticationTicket(principal, ApiKeyAuthenticationOptions.DefaultScheme);
 
             return AuthenticateResult.Success(ticket);
         }

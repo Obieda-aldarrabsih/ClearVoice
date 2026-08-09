@@ -30,8 +30,11 @@ To keep controllers exceptionally thin and testable, all business logic is encap
 ### 4. API Key Authentication for Machine-to-Machine (ERP) Integration
 While the frontend UI uses standard JWT tokens, ERP systems need long-lived credentials. We implemented a custom `ApiKeyAuthenticationHandler`. When an API Key is generated, the *clear-text key is returned only once*, and a **SHA-256 hash** of the key is stored in the database. This guarantees that even if the database is compromised, the API keys cannot be recovered or misused.
 
-### 5. Transactional Outbox Pattern (Preparation)
-Submitting an invoice to a government API can fail due to network issues. In the `SubmitInvoiceCommandHandler`, we save the `Invoice` to our database and simultaneously save an `OutboxMessage` in the *same database transaction*. A background worker (to be implemented) will reliably process this outbox table and retry submitting to the external API, guaranteeing eventual consistency without two-phase commit (2PC) complications.
+### 5. Transactional Outbox Pattern & Background Workers (Phase 7)
+Submitting an invoice to a government API can fail due to network issues. In the `SubmitInvoiceCommandHandler`, we save the `Invoice` to our database and simultaneously save an `OutboxMessage` in the *same database transaction*. A Background Worker (`ClearVoice.Workers`) continuously polls the outbox and retries submitting to the external API, guaranteeing eventual consistency without two-phase commit (2PC) complications.
+
+### 6. Webhooks (Phase 6)
+To notify third-party ERP systems when an invoice is successfully cleared by JoSEC, we implemented a Webhook dispatch mechanism. Tenants can register webhook URLs which receive a POST request with an HMAC-SHA256 signature (`X-ClearVoice-Signature`) so they can cryptographically verify that the event originated from ClearVoice.
 
 ### 6. Frontend Architecture (React + Vite)
 The presentation layer is built with **React**, **TypeScript**, and **Vite** for incredibly fast HMR. We prioritized a premium, institutional aesthetic:

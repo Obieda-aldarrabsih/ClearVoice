@@ -51,7 +51,7 @@ namespace ClearVoice.Infrastructure.Services
                 KeyPrefix = keyPrefix,
                 CreatedAt = DateTimeOffset.UtcNow,
                 LastUsedAt = null,
-                IsActive = true
+                RevokedAt = null
             };
 
             return (clearTextKey, apiKeyEntity);
@@ -67,7 +67,7 @@ namespace ClearVoice.Infrastructure.Services
             var hash = HashApiKey(clearTextKey);
 
             // Fetch the API key that matches the hash
-            var apiKey = await _context.ApiKeys.FirstOrDefaultAsync(k => k.KeyHash == hash && k.IsActive);
+            var apiKey = await _context.ApiKeys.FirstOrDefaultAsync(k => k.KeyHash == hash && k.RevokedAt == null);
             
             if (apiKey != null)
             {

@@ -30,6 +30,8 @@ builder.Services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IClearVoiceDbContext>(provider => provider.GetRequiredService<ClearVoiceDbContext>());
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+builder.Services.AddHttpClient(); // Required for WebhookDispatchService
+builder.Services.AddScoped<ClearVoice.Infrastructure.Services.IWebhookDispatchService, ClearVoice.Infrastructure.Services.WebhookDispatchService>();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ClearVoice.Application.Invoices.Commands.SubmitInvoiceCommand).Assembly));
 builder.Services.AddValidatorsFromAssembly(typeof(ClearVoice.Application.Invoices.Commands.SubmitInvoiceCommandValidator).Assembly);

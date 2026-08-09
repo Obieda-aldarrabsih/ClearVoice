@@ -31,7 +31,7 @@ namespace ClearVoice.Api.Controllers
 
             var result = _apiKeyService.GenerateApiKey(tenantId.Value, request.Name);
 
-            _context.Add(result.ApiKeyEntity);
+            _context.ApiKeys.Add(result.ApiKeyEntity);
             await _context.SaveChangesAsync(default);
 
             return Ok(new GenerateApiKeyResponse
