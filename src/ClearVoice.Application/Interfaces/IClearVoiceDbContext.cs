@@ -17,6 +17,8 @@ namespace ClearVoice.Application.Interfaces
         DbSet<WebhookEndpoint> WebhookEndpoints { get; }
         DbSet<WebhookDelivery> WebhookDeliveries { get; }
         DbSet<AuditLog> AuditLogs { get; }
+        DbSet<PasswordResetToken> PasswordResetTokens { get; }
+        DbSet<AccessRequest> AccessRequests { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }

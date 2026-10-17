@@ -8,7 +8,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Rate Limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("AuthRateLimit", opt =>
+    {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.PermitLimit = 5;
+        opt.QueueLimit = 0;
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+    options.RejectionStatusCode = 429;
+});
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -19,7 +35,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -98,6 +114,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -117,7 +134,7 @@ using (var scope = app.Services.CreateScope())
 
         var passwordHasher = services.GetRequiredService<IPasswordHasher>();
 
-        if (!context.Tenants.Any())
+            if (!context.Tenants.Any())
         {
             var tenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
             context.Tenants.Add(new ClearVoice.Domain.Entities.Tenant
@@ -139,8 +156,49 @@ using (var scope = app.Services.CreateScope())
                 CreatedAt = DateTimeOffset.UtcNow
             });
 
+            context.Users.Add(new ClearVoice.Domain.Entities.User
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000003"),
+                TenantId = tenantId, // Using same tenant for simplicity
+                Email = "system@clearvoice.com",
+                PasswordHash = passwordHasher.HashPassword("admin123"),
+                Role = "SystemOperator",
+                Status = "active",
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+
             context.SaveChanges();
             Console.WriteLine("Demo Tenant and User seeded.");
+        }
+        else
+        {
+            // Ensure admin user has correct argon2 hash (migration fix)
+            var adminUser = context.Users.FirstOrDefault(u => u.Email == "admin@company.com");
+            if (adminUser != null && !adminUser.PasswordHash.StartsWith("$argon"))
+            {
+                adminUser.PasswordHash = passwordHasher.HashPassword("password123");
+                context.SaveChanges();
+                Console.WriteLine("Admin user password hash updated to Argon2.");
+            }
+
+            // Ensure system operator exists
+            var sysUser = context.Users.FirstOrDefault(u => u.Email == "system@clearvoice.com");
+            if (sysUser == null)
+            {
+                var tenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+                context.Users.Add(new ClearVoice.Domain.Entities.User
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000003"),
+                    TenantId = tenantId,
+                    Email = "system@clearvoice.com",
+                    PasswordHash = passwordHasher.HashPassword("admin123"),
+                    Role = "SystemOperator",
+                    Status = "active",
+                    CreatedAt = DateTimeOffset.UtcNow
+                });
+                context.SaveChanges();
+                Console.WriteLine("SystemOperator user seeded.");
+            }
         }
     }
     catch (Exception ex)

@@ -1,91 +1,213 @@
-import { motion } from 'framer-motion';
-import { Plus, ArrowUpRight, ArrowDownRight, Clock, CheckCircle2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { FileText, CheckCircle2, AlertCircle, Activity, ArrowUpRight } from 'lucide-react';
+import { api } from '../lib/api';
+import { Skeleton } from '../components/ui/Skeleton';
+import { useTranslation } from 'react-i18next';
+import { useToast } from '../components/ui/ToastProvider';
+import { Link } from 'react-router-dom';
 
-const StatCard = ({ title, value, change, trend, icon: Icon, delay }: any) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay }}
-    className="card p-6"
-  >
-    <div className="flex items-center justify-between mb-4">
-      <div className="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center">
-        <Icon className="w-6 h-6 text-primary-600" />
-      </div>
-      <div className={cn("flex items-center gap-1 text-sm font-medium", trend === 'up' ? "text-primary-600" : "text-red-600")}>
-        {trend === 'up' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-        {change}
-      </div>
-    </div>
-    <h3 className="text-slate-500 text-sm font-medium mb-1">{title}</h3>
-    <p className="text-2xl font-bold text-slate-900">{value}</p>
-  </motion.div>
-);
-
-const InvoiceRow = ({ id, client, amount, status, date }: any) => (
-  <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-    <td className="py-4 px-6 text-sm font-medium text-slate-900">{id}</td>
-    <td className="py-4 px-6 text-sm text-slate-600">{client}</td>
-    <td className="py-4 px-6 text-sm font-medium text-slate-900">{amount}</td>
-    <td className="py-4 px-6 text-sm">
-      <span className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
-        status === 'Cleared' ? "bg-primary-50 text-primary-700" : "bg-amber-50 text-amber-700"
-      )}>
-        {status === 'Cleared' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-        {status}
-      </span>
-    </td>
-    <td className="py-4 px-6 text-sm text-slate-500">{date}</td>
-  </tr>
-);
-
-import { cn } from '../lib/utils';
+interface DashboardStats {
+  totalInvoices: number;
+  totalCleared: number;
+  pending: number;
+  failed: number;
+  totalVolume: number;
+  chartData: { date: string; volume: number }[];
+  recentInvoices: {
+    id: string;
+    internalReference: string;
+    buyerName: string;
+    issueDate: string;
+    totalAmount: number;
+    status: string;
+  }[];
+}
 
 export const Dashboard = () => {
-  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState('30d');
+  const { error } = useToast();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get(`/api/v1/dashboard/stats?range=${range}`);
+        setStats(response.data.data);
+      } catch (err: any) {
+        error(err.response?.data?.error || 'Failed to load dashboard statistics.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, [range, error]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-JO', {
+      style: 'currency',
+      currency: 'JOD',
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(new Date(dateString));
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'CLEARED': return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">{t('dashboard.badge_cleared')}</span>;
+      case 'PENDING': return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">{t('dashboard.badge_pending')}</span>;
+      case 'FAILED':
+      case 'REJECTED': return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">{t('dashboard.badge_failed')}</span>;
+      case 'SUBMITTED': return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">{t('invoices.submitted').toUpperCase()}</span>;
+      default: return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">{status}</span>;
+    }
+  };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
-          <p className="text-slate-500 mt-1">Overview of your e-invoicing activities</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('dashboard.overview')}</h1>
+        
+        <div className="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm p-1">
+          {['7d', '30d', '90d', 'ytd', 'all'].map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${range === r ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
+            >
+              {r.toUpperCase()}
+            </button>
+          ))}
         </div>
-        <button onClick={() => navigate('/invoices/new')} className="btn-primary gap-2">
-          <Plus className="w-4 h-4" /> New Invoice
-        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard title="Total Cleared Invoices" value="1,248" change="+12.5%" trend="up" icon={CheckCircle2} delay={0.1} />
-        <StatCard title="Pending Clearance" value="12" change="-2.4%" trend="down" icon={Clock} delay={0.2} />
-        <StatCard title="Total Volume (JOD)" value="JD 48,250" change="+18.2%" trend="up" icon={ArrowUpRight} delay={0.3} />
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-slate-500">{t('dashboard.total_volume')}</h3>
+            <div className="p-2 bg-primary-50 rounded-lg"><Activity className="w-5 h-5 text-primary-600" /></div>
+          </div>
+          {loading ? <Skeleton className="h-8 w-24" /> : <p className="text-3xl font-bold text-slate-900">{formatCurrency(stats?.totalVolume || 0)}</p>}
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-slate-500">{t('dashboard.total_invoices')}</h3>
+            <div className="p-2 bg-slate-50 rounded-lg"><FileText className="w-5 h-5 text-slate-600" /></div>
+          </div>
+          {loading ? <Skeleton className="h-8 w-16" /> : <p className="text-3xl font-bold text-slate-900">{stats?.totalInvoices}</p>}
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-slate-500">{t('dashboard.badge_cleared')}</h3>
+            <div className="p-2 bg-green-50 rounded-lg"><CheckCircle2 className="w-5 h-5 text-green-600" /></div>
+          </div>
+          {loading ? <Skeleton className="h-8 w-16" /> : <p className="text-3xl font-bold text-slate-900">{stats?.totalCleared}</p>}
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-slate-500">{t('dashboard.action_required')}</h3>
+            <div className="p-2 bg-red-50 rounded-lg"><AlertCircle className="w-5 h-5 text-red-600" /></div>
+          </div>
+          {loading ? (
+            <Skeleton className="h-8 w-16" />
+          ) : (
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-bold text-slate-900">{(stats?.failed || 0) + (stats?.pending || 0)}</p>
+              <span className="text-sm text-slate-500">
+                ({stats?.failed} {t('dashboard.failed')}, {stats?.pending} {t('dashboard.pending')})
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="card">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Recent Invoices</h3>
-          <button onClick={() => navigate('/invoices')} className="text-sm font-medium text-primary-600 hover:text-primary-700">View All</button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Chart */}
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900">{t('dashboard.chart_title')}</h3>
+          </div>
+          <div className="p-6 flex-1 min-h-[300px]">
+            {loading ? (
+              <Skeleton className="w-full h-full" />
+            ) : stats?.chartData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-slate-500">{t('dashboard.no_data')}</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={stats?.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="date" tickFormatter={(v) => formatDate(v)} stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${v/1000}k`} />
+                  <Tooltip 
+                    formatter={(value: any) => [formatCurrency(value as number), 'Volume']}
+                    labelFormatter={(label) => formatDate(label as string)}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Area type="monotone" dataKey="volume" stroke="#16a34a" strokeWidth={2} fillOpacity={1} fill="url(#colorVolume)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="py-3 px-6 text-xs font-medium text-slate-500 uppercase tracking-wider">Invoice ID</th>
-                <th className="py-3 px-6 text-xs font-medium text-slate-500 uppercase tracking-wider">Client</th>
-                <th className="py-3 px-6 text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
-                <th className="py-3 px-6 text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="py-3 px-6 text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <InvoiceRow id="INV-2023-001" client="Acme Corp" amount="JD 1,500.00" status="Cleared" date="Oct 24, 2023" />
-              <InvoiceRow id="INV-2023-002" client="TechStart Inc" amount="JD 3,250.00" status="Pending" date="Oct 24, 2023" />
-              <InvoiceRow id="INV-2023-003" client="Global Industries" amount="JD 840.50" status="Cleared" date="Oct 23, 2023" />
-            </tbody>
-          </table>
+
+        {/* Recent Invoices */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-900">{t('dashboard.recent_invoices')}</h3>
+            <Link to="/invoices" className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center">
+              {t('dashboard.view_all')} <ArrowUpRight className="w-4 h-4 ml-1" />
+            </Link>
+          </div>
+          <div className="flex-1 p-0 overflow-y-auto">
+            {loading ? (
+              <div className="p-6 space-y-4">
+                {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+              </div>
+            ) : stats?.recentInvoices.length === 0 ? (
+              <div className="p-6 flex flex-col items-center justify-center h-full text-center">
+                <FileText className="w-10 h-10 text-slate-300 mb-3" />
+                <p className="text-sm text-slate-500">{t('dashboard.no_recent_invoices')}</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-50">
+                {stats?.recentInvoices.map((inv) => (
+                  <li key={inv.id}>
+                    <Link to={`/invoices/${inv.id}`} className="block hover:bg-slate-50 p-4 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">{inv.internalReference || t('dashboard.draft')}</p>
+                          <p className="text-sm text-slate-500">{inv.buyerName}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-slate-900">{formatCurrency(inv.totalAmount)}</p>
+                          <div className="mt-1">{getStatusBadge(inv.status)}</div>
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
     </div>

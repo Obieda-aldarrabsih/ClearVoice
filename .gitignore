@@ -37,3 +37,8 @@ dist-ssr/
 # Env
 .env
 .env.*.local
+
+# Temporary scripts
+/*.js
+/TestArgon*
+/*.sql

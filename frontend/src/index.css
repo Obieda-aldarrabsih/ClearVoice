@@ -6,6 +6,14 @@
   body {
     @apply bg-surface-50 text-slate-900 font-sans antialiased;
   }
+
+  html[dir="rtl"], html[dir="rtl"] body, html[dir="rtl"] * {
+    font-family: 'Cairo', sans-serif !important;
+  }
+  
+  html[dir="ltr"] body {
+    font-family: 'Inter', sans-serif;
+  }
 }
 
 @layer components {

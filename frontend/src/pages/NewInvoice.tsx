@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Send, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../lib/api';
 
 export const NewInvoice = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +68,8 @@ export const NewInvoice = () => {
             <ArrowLeft className="w-5 h-5 text-slate-600" />
           </button>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Create Invoice</h2>
-            <p className="text-slate-500 mt-1">Submit a new e-invoice to JoSEC</p>
+            <h2 className="text-2xl font-bold text-slate-900">{t('new_invoice.create')}</h2>
+            <p className="text-slate-500 mt-1">{t('new_invoice.desc')}</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -92,21 +94,21 @@ export const NewInvoice = () => {
         <form className="p-8 space-y-8" onSubmit={handleSubmit}>
           
           <div>
-            <h3 className="text-lg font-medium text-slate-900 mb-4 border-b border-slate-100 pb-2">Client Details</h3>
+            <h3 className="text-lg font-medium text-slate-900 mb-4 border-b border-slate-100 pb-2">{t('new_invoice.client_details')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Client Name</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('new_invoice.client_name')}</label>
                 <input 
                   type="text" 
                   required
                   value={buyerName}
                   onChange={e => setBuyerName(e.target.value)}
                   className="input-field" 
-                  placeholder="E.g. Acme Corp" 
+                  placeholder={t('new_invoice.placeholder_client')} 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Tax Identification Number (TIN)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('new_invoice.tax_id')}</label>
                 <input 
                   type="text" 
                   required
@@ -117,13 +119,13 @@ export const NewInvoice = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">External Reference / PO Number (Optional)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('new_invoice.ext_ref')}</label>
                 <input 
                   type="text" 
                   value={externalRef}
                   onChange={e => setExternalRef(e.target.value)}
                   className="input-field" 
-                  placeholder="PO-2026-001" 
+                  placeholder={t('new_invoice.placeholder_ref')} 
                 />
               </div>
             </div>
@@ -131,25 +133,25 @@ export const NewInvoice = () => {
 
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-2">
-              <h3 className="text-lg font-medium text-slate-900">Line Items</h3>
+              <h3 className="text-lg font-medium text-slate-900">{t('new_invoice.line_items')}</h3>
             </div>
             
             <div className="space-y-4">
               {lines.map((line, index) => (
                 <div key={index} className="grid grid-cols-12 gap-4 items-center bg-slate-50 p-4 rounded-lg border border-slate-200">
                   <div className="col-span-5">
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Description</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">{t('new_invoice.desc_label')}</label>
                     <input 
                       type="text" 
                       required
                       value={line.description}
                       onChange={e => handleLineChange(index, 'description', e.target.value)}
                       className="input-field py-1.5 text-sm" 
-                      placeholder="Consulting Services" 
+                      placeholder={t('new_invoice.placeholder_desc')} 
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Quantity</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">{t('new_invoice.qty')}</label>
                     <input 
                       type="number" 
                       required
@@ -161,7 +163,7 @@ export const NewInvoice = () => {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Unit Price</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">{t('new_invoice.unit_price')}</label>
                     <input 
                       type="number" 
                       required
@@ -174,7 +176,7 @@ export const NewInvoice = () => {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Tax Rate (%)</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">{t('new_invoice.tax_rate')}</label>
                     <input 
                       type="number" 
                       required
@@ -201,7 +203,7 @@ export const NewInvoice = () => {
                 onClick={handleAddLine}
                 className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
               >
-                <Plus className="w-4 h-4" /> Add another item
+                <Plus className="w-4 h-4" /> {t('new_invoice.add_item')}
               </button>
             </div>
           </div>

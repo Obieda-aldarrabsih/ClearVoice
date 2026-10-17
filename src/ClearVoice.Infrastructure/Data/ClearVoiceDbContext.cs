@@ -25,6 +25,8 @@ namespace ClearVoice.Infrastructure.Data
         public DbSet<WebhookEndpoint> WebhookEndpoints { get; set; } = null!;
         public DbSet<WebhookDelivery> WebhookDeliveries { get; set; } = null!;
         public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
+        public DbSet<AccessRequest> AccessRequests { get; set; } = null!;
 
         public Guid? CurrentTenantId => _tenantProvider?.GetTenantId();
 
@@ -40,6 +42,12 @@ namespace ClearVoice.Infrastructure.Data
                 b.Property(t => t.LegalName).IsRequired().HasMaxLength(255);
                 b.Property(t => t.TaxId).IsRequired().HasMaxLength(50);
                 b.HasIndex(t => t.TaxId).IsUnique();
+                b.Property(t => t.Address).HasMaxLength(500);
+                b.Property(t => t.City).HasMaxLength(100);
+                b.Property(t => t.Country).HasMaxLength(100);
+                b.Property(t => t.Phone).HasMaxLength(50);
+                b.Property(t => t.Industry).HasMaxLength(100);
+                b.Property(t => t.Website).HasMaxLength(255);
                 b.Property(t => t.DefaultCurrency).HasDefaultValue("JOD").HasMaxLength(3);
                 b.Property(t => t.Plan).HasDefaultValue("trial").HasMaxLength(20);
             });
@@ -49,6 +57,7 @@ namespace ClearVoice.Infrastructure.Data
                 b.ToTable("users");
                 b.HasKey(u => u.Id);
                 b.Property(u => u.Email).IsRequired().HasMaxLength(255);
+                b.Property(u => u.FullName).IsRequired().HasMaxLength(255).HasDefaultValue("");
                 b.HasIndex(u => u.Email).IsUnique();
                 b.Property(u => u.Role).IsRequired().HasMaxLength(20);
                 b.Property(u => u.Status).HasDefaultValue("pending").HasMaxLength(20);
@@ -142,6 +151,25 @@ namespace ClearVoice.Infrastructure.Data
                 b.Property(a => a.AfterState).HasColumnType("jsonb");
                 b.HasIndex(a => a.CreatedAt);
                 b.HasQueryFilter(a => CurrentTenantId == null || a.TenantId == CurrentTenantId);
+            });
+
+            modelBuilder.Entity<PasswordResetToken>(b =>
+            {
+                b.ToTable("password_reset_tokens");
+                b.HasKey(t => t.Id);
+                b.Property(t => t.TokenHash).IsRequired().HasMaxLength(255);
+                b.HasIndex(t => t.TokenHash);
+            });
+
+            modelBuilder.Entity<AccessRequest>(b =>
+            {
+                b.ToTable("access_requests");
+                b.HasKey(a => a.Id);
+                b.Property(a => a.FullName).IsRequired().HasMaxLength(255);
+                b.Property(a => a.Email).IsRequired().HasMaxLength(255);
+                b.Property(a => a.OrganizationName).IsRequired().HasMaxLength(255);
+                b.Property(a => a.Message).HasMaxLength(1000);
+                b.Property(a => a.Status).IsRequired().HasMaxLength(20);
             });
         }
     }
