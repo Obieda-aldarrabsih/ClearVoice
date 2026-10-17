@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { FileCheck2, LayoutDashboard, FileText, Settings, LogOut, ChevronDown, User as UserIcon, AlertTriangle, Shield } from 'lucide-react';
+import { LayoutDashboard, FileText, Settings, LogOut, ChevronDown, User as UserIcon, AlertTriangle, Shield } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';

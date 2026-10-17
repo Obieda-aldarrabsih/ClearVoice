@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Send, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';

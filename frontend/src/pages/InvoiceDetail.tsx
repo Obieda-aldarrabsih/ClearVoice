@@ -9,8 +9,7 @@ import {
   FileCode2, 
   Building2, 
   AlertTriangle,
-  CheckCircle2,
-  Clock
+  CheckCircle2
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useToast } from '../components/ui/ToastProvider';

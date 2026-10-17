@@ -3,14 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { 
-  Building2, 
   Code, 
   LayoutDashboard, 
   CheckCircle2, 
   Loader2, 
   ArrowRight,
-  KeyRound,
-  FileText
+  KeyRound
 } from 'lucide-react';
 import { useToast } from '../components/ui/ToastProvider';
 

@@ -1,4 +1,4 @@
-import { createContext, useState, useCallback, useContext, ReactNode } from 'react';
+import { createContext, useState, useCallback, useContext, type ReactNode } from 'react';
 import { CheckCircle, AlertCircle, X, Info } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -12,6 +12,7 @@ interface ToastMessage {
 
 interface ToastContextType {
   addToast: (message: string, type: ToastType) => void;
+  showToast: (message: string, type?: ToastType) => void;
   success: (message: string) => void;
   error: (message: string) => void;
   info: (message: string) => void;
@@ -31,12 +32,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }, 4000); // 4 seconds
   }, []);
 
+  const showToast = useCallback((message: string, type: ToastType = 'info') => addToast(message, type), [addToast]);
   const success = useCallback((message: string) => addToast(message, 'success'), [addToast]);
   const error = useCallback((message: string) => addToast(message, 'error'), [addToast]);
   const info = useCallback((message: string) => addToast(message, 'info'), [addToast]);
 
   return (
-    <ToastContext.Provider value={{ addToast, success, error, info }}>
+    <ToastContext.Provider value={{ addToast, showToast, success, error, info }}>
       {children}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map((toast) => (

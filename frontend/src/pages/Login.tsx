@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { FileCheck2, ArrowRight, AlertCircle } from 'lucide-react';
+import { ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '../lib/api';
 
 export const Login = () => {

@@ -195,7 +195,7 @@ const OrganizationTab = ({ onError }: any) => {
 };
 
 // --- Team Tab ---
-const TeamTab = ({ onSuccess, onError }: any) => {
+const TeamTab = ({ onError }: any) => {
   const { t } = useTranslation();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -331,7 +331,7 @@ const ApiKeysTab = ({ onError }: any) => {
 };
 
 // --- Webhooks Tab ---
-const WebhooksTab = ({ onSuccess, onError }: any) => {
+const WebhooksTab = ({ onError }: any) => {
   const { t } = useTranslation();
   const [webhooks, setWebhooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
