@@ -1,55 +1,143 @@
 # ClearVoice E-Invoicing Compliance Gateway
 
-ClearVoice is an institutional-grade B2B e-invoicing compliance gateway, designed to integrate Enterprise Resource Planning (ERP) systems with government tax authorities (specifically tailored to the Jordanian market).
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![.NET 8](https://img.shields.io/badge/.NET-8.0-blue.svg)
+![React](https://img.shields.io/badge/React-18-blue.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)
 
-## Architecture
+ClearVoice is an institutional-grade B2B e-invoicing compliance gateway designed to bridge Enterprise Resource Planning (ERP) systems with national tax clearance authorities, specifically tailored for the Jordanian e-invoicing compliance model.
 
-This project is built using a strict **Clean Architecture** approach with **CQRS** (Command Query Responsibility Segregation) principles to ensure high maintainability, testability, and separation of concerns.
+---
 
-The solution is divided into the following layers:
+## Architecture & Clean Architecture Principles
 
-1. **`ClearVoice.Domain`**: Contains the core enterprise logic, entities (`Tenant`, `Invoice`, `User`, etc.), and domain exceptions. It has no dependencies on other layers.
-2. **`ClearVoice.Application`**: Contains the use cases of the system. We use **MediatR** for the CQRS pattern to handle Commands (e.g., `SubmitInvoiceCommand`) and Queries. Validation is handled using **FluentValidation** before commands execute.
-3. **`ClearVoice.Infrastructure`**: Contains all external concerns. This includes:
-   - **Data Access**: Entity Framework Core with PostgreSQL.
-   - **Tenant Isolation**: Implemented using EF Core Global Query Filters (`CurrentTenantId`), ensuring multi-tenant data safety at the database level.
-   - **External Services**: Implementation of interfaces like `IClearanceClient` (currently mocked) to communicate with government APIs.
-4. **`ClearVoice.Api`**: The presentation layer (ASP.NET Core 8 Web API). It depends only on the Application layer for handling requests and uses JWT-based authentication.
+The system follows a strict **Clean Architecture** approach with **CQRS** (Command Query Responsibility Segregation) principles to ensure high maintainability, testability, and decoupled business logic:
 
-## Key Engineering Decisions (Phases 1-4)
+1. **`ClearVoice.Domain`**: Core enterprise models and entities (`Tenant`, `Invoice`, `User`, `OutboxMessage`, `WebhookSubscription`), along with domain exceptions. Has zero external dependencies.
+2. **`ClearVoice.Application`**: Use-case orchestration using **MediatR** for CQRS command/query segregation. Request validation is handled using **FluentValidation** pipeline behaviors before handlers execute.
+3. **`ClearVoice.Infrastructure`**: Persistence and external interfaces:
+   - **PostgreSQL & EF Core**: Relational persistence and schema migrations.
+   - **Multi-Tenant Data Isolation**: Automated EF Core Global Query Filters (`CurrentTenantId`), ensuring tenant data isolation at the ORM query level.
+   - **Clearance Service**: Contract interface `IClearanceClient` (currently implemented with `MockClearanceClient` for local simulation).
+4. **`ClearVoice.Api`**: RESTful presentation layer (ASP.NET Core 8 Web API) using JWT bearer tokens and machine-to-machine API keys.
+5. **`ClearVoice.Workers`**: Dedicated background service implementing the Transactional Outbox pattern for asynchronous clearance submission and webhook retries.
+6. **`frontend/`**: Multilingual Single Page Application (React 18 + Vite + TypeScript + Tailwind CSS).
+
+---
+
+## Key Engineering Decisions
 
 ### 1. Multi-Tenancy & Data Isolation
-Security in a B2B SaaS product is paramount. We implemented strict tenant isolation using **EF Core Global Query Filters**. By injecting an `ITenantProvider` (which extracts the tenant ID from the authenticated user's JWT claims) into the `DbContext`, every single query automatically appends a `WHERE TenantId = @id` clause. This completely eliminates the risk of a developer forgetting to filter by tenant and leaking sensitive invoice data.
+Security in multi-tenant SaaS is paramount. Data isolation is enforced via **EF Core Global Query Filters**. An injected `ITenantProvider` extracts the tenant ID from authenticated JWT claims or API key headers, appending `WHERE TenantId = @id` to every query automatically to eliminate tenant leakage.
 
 ### 2. Password Security (Argon2id)
-Instead of older algorithms like PBKDF2 or BCrypt, we chose **Argon2id** (the winner of the Password Hashing Competition) for hashing user passwords. It provides superior resistance to GPU cracking attacks and side-channel attacks, adhering to the latest OWASP guidelines.
+User password hashing uses **Argon2id** (via `Konscious.Security.Cryptography`), the OWASP-recommended algorithm offering superior resistance to GPU cracking and side-channel attacks compared to legacy PBKDF2 or standard BCrypt.
 
-### 3. CQRS with MediatR & FluentValidation
-To keep controllers exceptionally thin and testable, all business logic is encapsulated in MediatR Command/Query handlers in the Application layer. We use FluentValidation to enforce strict request validation (e.g., verifying invoice line items have positive quantities) *before* the handler is invoked.
+### 3. API Key Authentication for Machine-to-Machine (ERP) Integration
+While web users authenticate via short-lived JWT tokens, ERP integrations utilize long-lived API keys. The system returns the plain-text key only once upon generation and persists an irreversible **SHA-256 hash** in the database, ensuring keys cannot be retrieved if the database is read.
 
-### 4. API Key Authentication for Machine-to-Machine (ERP) Integration
-While the frontend UI uses standard JWT tokens, ERP systems need long-lived credentials. We implemented a custom `ApiKeyAuthenticationHandler`. When an API Key is generated, the *clear-text key is returned only once*, and a **SHA-256 hash** of the key is stored in the database. This guarantees that even if the database is compromised, the API keys cannot be recovered or misused.
+### 4. Transactional Outbox Pattern & Background Workers
+Submitting invoices to external services over HTTP introduces network failure risks. `SubmitInvoiceCommandHandler` persists the `Invoice` and an associated `OutboxMessage` in a single atomic database transaction. The background worker (`ClearVoice.Workers`) polls pending messages and executes clearance with resilient backoff retry.
 
-### 5. Transactional Outbox Pattern & Background Workers (Phase 7)
-Submitting an invoice to a government API can fail due to network issues. In the `SubmitInvoiceCommandHandler`, we save the `Invoice` to our database and simultaneously save an `OutboxMessage` in the *same database transaction*. A Background Worker (`ClearVoice.Workers`) continuously polls the outbox and retries submitting to the external API, guaranteeing eventual consistency without two-phase commit (2PC) complications.
+### 5. HMAC-Signed Webhook Notifications
+When an invoice status transitions (e.g. Cleared or Rejected by the national clearance service), the system dispatches an HTTP POST webhook containing an HMAC-SHA256 signature header (`X-ClearVoice-Signature`) so subscribers can verify message authenticity.
 
-### 6. Webhooks (Phase 6)
-To notify third-party ERP systems when an invoice is successfully cleared by JoSEC, we implemented a Webhook dispatch mechanism. Tenants can register webhook URLs which receive a POST request with an HMAC-SHA256 signature (`X-ClearVoice-Signature`) so they can cryptographically verify that the event originated from ClearVoice.
+### 6. Modern Multilingual Frontend
+The web portal supports Arabic (RTL) and English (LTR) using `i18next`:
+- **Styling**: Tailwind CSS with custom design tokens for institutional compliance software.
+- **Interactions**: Framer Motion transitions and toasts.
+- **Component Design**: Strict TypeScript contracts and reusable form components.
 
-### 6. Frontend Architecture (React + Vite)
-The presentation layer is built with **React**, **TypeScript**, and **Vite** for incredibly fast HMR. We prioritized a premium, institutional aesthetic:
-- **Tailwind CSS**: Custom configured with a professional `primary` green palette and subtle `surface` colors.
-- **Framer Motion**: Utilized for micro-interactions (e.g., page transitions, active navigation states) that make the application feel responsive and modern.
-- **Component Design**: UI components (like `StatCard`, `InvoiceRow`) are modularized. Global CSS classes (`btn-primary`, `input-field`, `card`) are defined in `index.css` using `@layer components` to prevent utility-class clutter in the JSX while maintaining Tailwind's benefits.
+---
 
 ## Getting Started
 
 ### Prerequisites
-- .NET 8 SDK
-- Node.js 18+ (for Frontend)
-- Docker & Docker Compose (for PostgreSQL database)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [Node.js](https://nodejs.org/) (v18 or v20 LTS)
+- [Docker & Docker Compose](https://www.docker.com/)
 
-### Running Locally
-1. Start the database: `docker-compose up -d db`
-2. Run migrations: `dotnet ef database update --project src/ClearVoice.Infrastructure --startup-project src/ClearVoice.Api`
-3. Run the API: `dotnet run --project src/ClearVoice.Api`
+---
+
+### Option A: Run Full Stack via Docker Compose (Recommended)
+
+Run the database, API, and frontend in containers with a single command:
+
+```bash
+docker compose up --build
+```
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:5242
+- **Swagger Documentation**: http://localhost:5242/swagger
+
+---
+
+### Option B: Local Development Workflow
+
+#### 1. Start the Database
+```bash
+docker compose up -d db
+```
+
+#### 2. Run Database Migrations
+```bash
+dotnet ef database update --project src/ClearVoice.Infrastructure --startup-project src/ClearVoice.Api
+```
+
+#### 3. Start Backend Services
+In separate terminal windows:
+```bash
+# Start API
+dotnet run --project src/ClearVoice.Api
+
+# Start Background Worker
+dotnet run --project src/ClearVoice.Workers
+```
+
+#### 4. Start Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+> **Automated Dev Script:**  
+> - On Windows (PowerShell): `.\start-dev.ps1`  
+> - On Linux / macOS (Bash): `./start-dev.sh`
+
+---
+
+## Seeded Demo Credentials
+
+When the database initializes, the application seeds the following demo accounts for testing:
+
+| Role | Email | Password | Access Scope |
+| :--- | :--- | :--- | :--- |
+| **Tenant Admin** | `admin@company.com` | `password123` | Dashboard, Invoices, Webhooks, API Keys |
+| **System Operator** | `system@clearvoice.com` | `admin123` | Multi-tenant administration portal |
+
+---
+
+## Running Automated Tests
+
+To run the unit and integration test suite:
+
+```bash
+dotnet test tests/ClearVoice.Api.Tests/ClearVoice.Api.Tests.csproj
+```
+
+To run frontend production build checks:
+
+```bash
+cd frontend
+npm run build
+```
+
+---
+
+## Limitations / Not Yet Implemented
+
+1. **Simulated Clearance Endpoint**: Integration with the national tax clearance service is implemented using `MockClearanceClient`. A live connection to governmental endpoints (such as Jordan's JoFotara/ISTD portal) requires registered taxpayer tax numbers and mutual TLS (mTLS) certificates issued by the tax department.
+2. **Distributed Outbox Locking**: The current background worker uses PostgreSQL optimistic locking for outbox processing; in a distributed multi-node deployment, an advisory lock or Redis distributed lock (e.g., RedLock) should be added.
+3. **Real Email/SMS Dispatch**: User onboarding and password reset flows output verification tokens and log notifications internally; production SMTP / SMS gateway integration is not configured.

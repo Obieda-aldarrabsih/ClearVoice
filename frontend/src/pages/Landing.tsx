@@ -229,7 +229,7 @@ export const Landing = () => {
               {t('landing.sec_desc')}
             </p>
             <div className="flex flex-wrap justify-center gap-8 opacity-70 grayscale">
-              {/* Trust Badges placeholders */}
+              {/* Security & Compliance Badges */}
               <div className="flex items-center gap-2 font-bold text-xl text-slate-400"><Lock className="w-6 h-6"/> SOC 2 Type II</div>
               <div className="flex items-center gap-2 font-bold text-xl text-slate-400"><ShieldCheck className="w-6 h-6"/> GDPR Ready</div>
               <div className="flex items-center gap-2 font-bold text-xl text-slate-400"><FileCheck2 className="w-6 h-6"/> ISO 27001</div>
