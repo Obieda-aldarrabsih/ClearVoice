@@ -13,6 +13,37 @@ services:
     volumes:
       - clearvoice_pgdata:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: src/ClearVoice.Api/Dockerfile
+    container_name: clearvoice-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=clearvoice;Username=postgres;Password=Password123!
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5242:8080"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clearvoice-frontend
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+    restart: unless-stopped
 
 volumes:
   clearvoice_pgdata:
