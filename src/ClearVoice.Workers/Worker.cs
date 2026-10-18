@@ -78,7 +78,7 @@ public class Worker : BackgroundService
                         invoice.QrPayload = result.QrPayload;
                         invoice.ClearedAt = DateTimeOffset.UtcNow;
                         
-                        _logger.LogInformation("Invoice {InvoiceId} successfully cleared by JoSEC.", invoice.Id);
+                        _logger.LogInformation("Invoice {InvoiceId} successfully cleared by the clearance service.", invoice.Id);
 
                         // Dispatch Webhooks
                         await webhookDispatch.DispatchInvoiceClearedEventAsync(invoice.TenantId, invoice.Id, result.ResponseCode!);
@@ -87,7 +87,7 @@ public class Worker : BackgroundService
                     {
                         invoice.Status = "REJECTED";
                         // Log or handle rejection in a real system
-                        _logger.LogWarning("Invoice {InvoiceId} rejected by JoSEC. Reason: {Reason}", invoice.Id, result.ErrorDetail);
+                        _logger.LogWarning("Invoice {InvoiceId} rejected by the clearance service. Reason: {Reason}", invoice.Id, result.ErrorDetail);
                     }
                 }
             }

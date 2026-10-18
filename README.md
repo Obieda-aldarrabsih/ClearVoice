@@ -2,10 +2,22 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-blue.svg)
-![React](https://img.shields.io/badge/React-18-blue.svg)
+![React](https://img.shields.io/badge/React-19-blue.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)
 
 ClearVoice is an institutional-grade B2B e-invoicing compliance gateway designed to bridge Enterprise Resource Planning (ERP) systems with national tax clearance authorities, specifically tailored for the Jordanian e-invoicing compliance model.
+
+---
+
+## Visual Preview & Interface
+
+| Landing Portal & Compliance Hero | Interactive Invoice Builder |
+| :---: | :---: |
+| ![ClearVoice Landing Portal](docs/screenshots/01-landing-hero.png) | ![ClearVoice Invoice Builder](docs/screenshots/04-invoice-builder.png) |
+
+| Enterprise Compliance & Features | Secure Multi-Tenant Authentication |
+| :---: | :---: |
+| ![ClearVoice Features](docs/screenshots/02-landing-features.png) | ![ClearVoice Sign In](docs/screenshots/03-auth-login.png) |
 
 ---
 
@@ -20,8 +32,8 @@ The system follows a strict **Clean Architecture** approach with **CQRS** (Comma
    - **Multi-Tenant Data Isolation**: Automated EF Core Global Query Filters (`CurrentTenantId`), ensuring tenant data isolation at the ORM query level.
    - **Clearance Service**: Contract interface `IClearanceClient` (currently implemented with `MockClearanceClient` for local simulation).
 4. **`ClearVoice.Api`**: RESTful presentation layer (ASP.NET Core 8 Web API) using JWT bearer tokens and machine-to-machine API keys.
-5. **`ClearVoice.Workers`**: Dedicated background service implementing the Transactional Outbox pattern for asynchronous clearance submission and webhook retries.
-6. **`frontend/`**: Multilingual Single Page Application (React 18 + Vite + TypeScript + Tailwind CSS).
+5. **`ClearVoice.Workers`**: Background service that polls the outbox table and submits pending invoices to the clearance client.
+6. **`frontend/`**: Multilingual Single Page Application (React 19 + Vite + TypeScript + Tailwind CSS).
 
 ---
 
@@ -37,7 +49,7 @@ User password hashing uses **Argon2id** (via `Konscious.Security.Cryptography`),
 While web users authenticate via short-lived JWT tokens, ERP integrations utilize long-lived API keys. The system returns the plain-text key only once upon generation and persists an irreversible **SHA-256 hash** in the database, ensuring keys cannot be retrieved if the database is read.
 
 ### 4. Transactional Outbox Pattern & Background Workers
-Submitting invoices to external services over HTTP introduces network failure risks. `SubmitInvoiceCommandHandler` persists the `Invoice` and an associated `OutboxMessage` in a single atomic database transaction. The background worker (`ClearVoice.Workers`) polls pending messages and executes clearance with resilient backoff retry.
+Submitting invoices to external services over HTTP introduces network failure risks. `SubmitInvoiceCommandHandler` persists the `Invoice` and an associated `OutboxMessage` in a single atomic database transaction, so an invoice is never accepted without a matching outbox record. The background worker (`ClearVoice.Workers`) polls every 5 seconds for pending messages (up to 20 per batch) and submits them to the clearance client.
 
 ### 5. HMAC-Signed Webhook Notifications
 When an invoice status transitions (e.g. Cleared or Rejected by the national clearance service), the system dispatches an HTTP POST webhook containing an HMAC-SHA256 signature header (`X-ClearVoice-Signature`) so subscribers can verify message authenticity.
@@ -59,9 +71,11 @@ The web portal supports Arabic (RTL) and English (LTR) using `i18next`:
 
 ---
 
-### Option A: Run Full Stack via Docker Compose (Recommended)
+### Option A: Run via Docker Compose
 
-Run the database, API, and frontend in containers with a single command:
+> **Note:** The compose file and Dockerfiles for the API and frontend were added recently and have not yet been verified end-to-end on a clean machine. Option B is the tested path. The background worker is not included in compose; run it with `dotnet run --project src/ClearVoice.Workers`.
+
+Run the database, API, and frontend in containers:
 
 ```bash
 docker compose up --build
@@ -138,6 +152,6 @@ npm run build
 
 ## Limitations / Not Yet Implemented
 
-1. **Simulated Clearance Endpoint**: Integration with the national tax clearance service is implemented using `MockClearanceClient`. A live connection to governmental endpoints (such as Jordan's JoFotara/ISTD portal) requires registered taxpayer tax numbers and mutual TLS (mTLS) certificates issued by the tax department.
-2. **Distributed Outbox Locking**: The current background worker uses PostgreSQL optimistic locking for outbox processing; in a distributed multi-node deployment, an advisory lock or Redis distributed lock (e.g., RedLock) should be added.
+1. **Simulated Clearance Endpoint**: Clearance is implemented with `MockClearanceClient`; no real government endpoint is integrated. Jordan's national e-invoicing system is **JoFotara**, operated by the Income and Sales Tax Department (ISTD) ([portal.jofotara.gov.jo](https://portal.jofotara.gov.jo/)). Connecting to it requires a registered taxpayer account and ISTD-issued API credentials, which this project does not have.
+2. **Outbox Retry & Locking**: The worker has no retry/backoff: a failed clearance call marks the invoice `REJECTED` and the outbox message `processed`. It also takes no row lock, so running more than one worker instance could process the same message twice. Exponential backoff using the existing `NextAttemptAt` column and `SELECT ... FOR UPDATE SKIP LOCKED` would address both.
 3. **Real Email/SMS Dispatch**: User onboarding and password reset flows output verification tokens and log notifications internally; production SMTP / SMS gateway integration is not configured.

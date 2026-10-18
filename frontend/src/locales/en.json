@@ -31,7 +31,7 @@
     "features_title": "Everything you need for global billing",
     "features_desc": "A unified platform that handles the complexities of tax compliance, invoice delivery, and reporting.",
     "feat1_title": "Global Compliance",
-    "feat1_desc": "Automatically format and deliver invoices according to local tax authority regulations (e.g. UBL, ZATCA, JoSEC).",
+    "feat1_desc": "Automatically format and deliver invoices according to local tax authority regulations (currently a simulated clearance service).",
     "feat2_title": "Real-time Clearance",
     "feat2_desc": "Direct integration with government clearance portals for immediate invoice validation and approval.",
     "feat3_title": "Advanced Analytics",
@@ -185,7 +185,7 @@
   },
   "invoice_detail": {
     "back": "Back",
-    "submit_jo": "Submit to JoSEC",
+    "submit_jo": "Submit for Clearance",
     "submitting": "Submitting...",
     "status": "Status",
     "total_amount": "Total Amount",
@@ -214,7 +214,7 @@
   },
   "new_invoice": {
     "create": "Create Invoice",
-    "desc": "Submit a new e-invoice to JoSEC",
+    "desc": "Submit a new e-invoice for clearance",
     "submit": "Submit Invoice",
     "save_draft": "Save Draft",
     "client_details": "Client Details",
