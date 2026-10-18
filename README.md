@@ -9,15 +9,37 @@ ClearVoice is an institutional-grade B2B e-invoicing compliance gateway designed
 
 ---
 
-## Visual Preview & Interface
+## Visual Preview & Interface (Light & Dark Mode)
 
-| Landing Portal & Compliance Hero | Interactive Invoice Builder |
+### Executive Dashboard & Compliance Analytics
+| Light Mode | Dark Mode |
 | :---: | :---: |
-| ![ClearVoice Landing Portal](docs/screenshots/01-landing-hero.png) | ![ClearVoice Invoice Builder](docs/screenshots/04-invoice-builder.png) |
+| ![ClearVoice Dashboard Light](docs/screenshots/02-dashboard-light.png) | ![ClearVoice Dashboard Dark](docs/screenshots/02-dashboard-dark.png) |
 
-| Enterprise Compliance & Features | Secure Multi-Tenant Authentication |
+### Invoice Management & Tax Clearance Ledger
+| Light Mode | Dark Mode |
 | :---: | :---: |
-| ![ClearVoice Features](docs/screenshots/02-landing-features.png) | ![ClearVoice Sign In](docs/screenshots/03-auth-login.png) |
+| ![ClearVoice Invoices List Light](docs/screenshots/03-invoices-list-light.png) | ![ClearVoice Invoices List Dark](docs/screenshots/03-invoices-list-dark.png) |
+
+### Interactive Tax Invoice Builder
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| ![ClearVoice Invoice Builder Light](docs/screenshots/04-invoice-builder-light.png) | ![ClearVoice Invoice Builder Dark](docs/screenshots/04-invoice-builder-dark.png) |
+
+### Exception Queue & Needs Attention
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| ![ClearVoice Needs Attention Light](docs/screenshots/05-needs-attention-light.png) | ![ClearVoice Needs Attention Dark](docs/screenshots/05-needs-attention-dark.png) |
+
+### Settings & Institutional Configuration
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| ![ClearVoice Settings Light](docs/screenshots/06-settings-light.png) | ![ClearVoice Settings Dark](docs/screenshots/06-settings-dark.png) |
+
+### Public Portal & Authentication
+| Landing Portal (Light) | Enterprise Sign In (Dark) |
+| :---: | :---: |
+| ![ClearVoice Landing Portal](docs/screenshots/01-landing-hero-light.png) | ![ClearVoice Sign In Dark](docs/screenshots/07-auth-login-dark.png) |
 
 ---
 

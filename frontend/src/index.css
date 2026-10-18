@@ -33,3 +33,70 @@
     @apply bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden;
   }
 }
+
+/* Institutional Dark Mode Rules */
+[data-theme="dark"], html.dark {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] body, html.dark body {
+  background-color: #0B1311 !important;
+  color: #E2E8F0 !important;
+}
+
+[data-theme="dark"] .bg-white, html.dark .bg-white {
+  background-color: #111C19 !important;
+  color: #E2E8F0 !important;
+}
+
+[data-theme="dark"] .bg-surface-50, html.dark .bg-surface-50 {
+  background-color: #0B1311 !important;
+}
+
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-slate-200,
+html.dark .border-slate-100,
+html.dark .border-slate-200 {
+  border-color: #253631 !important;
+}
+
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .text-slate-700,
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-slate-500,
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .card, html.dark .card {
+  background-color: #111C19 !important;
+  border-color: #253631 !important;
+}
+
+[data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea,
+html.dark input, html.dark select, html.dark textarea {
+  background-color: #172521 !important;
+  border-color: #253631 !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .bg-slate-50, html.dark .bg-slate-50 {
+  background-color: #172521 !important;
+}
+
+[data-theme="dark"] tr:hover, html.dark tr:hover {
+  background-color: #172521 !important;
+}
+
+[data-theme="dark"] header, html.dark header {
+  background-color: rgba(17, 28, 25, 0.9) !important;
+  border-color: #253631 !important;
+}
